@@ -1647,6 +1647,7 @@ dds_dispose(
        _In_ dds_entity_t writer,
        _In_ const void *data);
 
+
 /**
  * @brief This operation disposes an instance with a specific timestamp, identified by the data sample.
  *
@@ -1777,6 +1778,25 @@ dds_write(
         _In_ dds_entity_t writer,
         _In_ const void *data);
 
+/**
+ * @brief Write the value of a data instance using provided data handle
+ *
+ * With this API, the value of the source timestamp is automatically made
+ * available to the data reader by the service.
+ *
+ * @param[in]  writer The writer entity.
+ * @param[in]  data Value to be written.
+ * @param[in]  instance handle.
+ *
+ * @returns dds_return_t indicating success or failure.
+ */
+_Pre_satisfies_((writer & DDS_ENTITY_KIND_MASK) == DDS_KIND_WRITER)
+DDS_EXPORT dds_return_t
+dds_write_ih(
+        _In_ dds_entity_t writer,
+        _In_ const void *data,
+        _In_ dds_instance_handle_t handle);
+
 /*TODO: What is it for and is it really needed? */
 _Pre_satisfies_((writer & DDS_ENTITY_KIND_MASK) == DDS_KIND_WRITER)
 DDS_EXPORT void
@@ -1807,11 +1827,27 @@ dds_writecdr(
  *
  * @returns A dds_return_t indicating success or failure.
  */
-_Pre_satisfies_((writer & DDS_ENTITY_KIND_MASK) == DDS_KIND_WRITER)
 DDS_EXPORT dds_return_t
 dds_write_ts(
         _In_ dds_entity_t writer,
         _In_ const void *data,
+        _In_ dds_time_t timestamp);
+
+/**
+ * @brief Write the value of a data instance along with the source timestamp passed using the instance handle passed.
+ *
+ * @param[in]  writer The writer entity.
+ * @param[in]  data Value to be written.
+ * @param[in]  handle instance handle .
+ * @param[in]  timestamp Source timestamp.
+ *
+ * @returns A dds_return_t indicating success or failure.
+ */
+DDS_EXPORT dds_return_t
+dds_write_ih_ts(
+        _In_ dds_entity_t writer,
+        _In_ const void *data,
+        _In_ dds_instance_handle_t handle,
         _In_ dds_time_t timestamp);
 
 /**

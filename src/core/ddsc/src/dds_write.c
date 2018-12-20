@@ -28,16 +28,16 @@
 
 dds_return_t dds_write (dds_entity_t writer, const void *data)
 {
-  dds_return_t ret;
-  dds__retcode_t rc;
-  dds_writer *wr;
+    dds_return_t ret;
+    dds__retcode_t rc;
+    dds_writer *wr;
 
   if (data == NULL)
     return DDS_ERRNO (DDS_RETCODE_BAD_PARAMETER);
 
   if ((rc = dds_writer_lock (writer, &wr)) != DDS_RETCODE_OK)
     return DDS_ERRNO (rc);
-  ret = dds_write_impl (wr, data, dds_time (), 0);
+  ret = dds_write_impl (wr, data, dds_time (), DDS_HANDLE_NIL, 0);
   dds_writer_unlock (wr);
   return ret;
 }
@@ -69,7 +69,7 @@ dds_return_t dds_write_ts (dds_entity_t writer, const void *data, dds_time_t tim
 
   if ((rc = dds_writer_lock (writer, &wr)) != DDS_RETCODE_OK)
     return DDS_ERRNO (rc);
-  ret = dds_write_impl (wr, data, timestamp, 0);
+  ret = dds_write_impl (wr, data, timestamp, DDS_HANDLE_NIL, 0);
   dds_writer_unlock (wr);
   return ret;
 }
@@ -146,7 +146,7 @@ static dds_return_t deliver_locally (struct writer *wr, struct ddsi_serdata *pay
   return ret;
 }
 
-dds_return_t dds_write_impl (dds_writer *wr, const void * data, dds_time_t tstamp, dds_write_action action)
+dds_return_t dds_write_impl (dds_writer *wr, const void * data, dds_time_t tstamp, dds_instance_handle_t handle, dds_write_action action)
 {
   struct thread_state1 * const thr = lookup_thread_state ();
   const bool asleep = !vtime_awake_p (thr->vtime);
@@ -176,7 +176,7 @@ dds_return_t dds_write_impl (dds_writer *wr, const void * data, dds_time_t tstam
   d->statusinfo = ((action & DDS_WR_DISPOSE_BIT) ? NN_STATUSINFO_DISPOSE : 0) | ((action & DDS_WR_UNREGISTER_BIT) ? NN_STATUSINFO_UNREGISTER : 0);
   d->timestamp.v = tstamp;
   ddsi_serdata_ref (d);
-  tk = ddsi_tkmap_lookup_instance_ref (d);
+  tk = ddsi_tkmap_find (d, true, handle == DDS_HANDLE_NIL);
   w_rc = write_sample_gc (wr->m_xp, ddsi_wr, d, tk);
 
   if (w_rc >= 0)
@@ -281,4 +281,69 @@ void dds_write_flush (dds_entity_t writer)
   if (asleep)
     thread_state_asleep (thr);
   return;
+}
+
+dds_return_t dds_write_ih (dds_entity_t writer, const void *data, dds_instance_handle_t handle)
+{
+    dds_return_t ret;
+    dds__retcode_t rc;
+    dds_writer *wr;
+    dds_instance_handle_t inst;
+
+    if (data == NULL || handle == DDS_HANDLE_NIL) {
+        return DDS_ERRNO (DDS_RETCODE_BAD_PARAMETER);
+    }
+
+    if (dds_entity_kind_from_handle(writer) != DDS_KIND_WRITER) {
+        return DDS_ERRNO(DDS_RETCODE_ILLEGAL_OPERATION);
+    }
+
+    inst= dds_lookup_instance (writer, data);
+    if(inst != handle) {
+        DDS_ERROR("Wrong instance handle provided \n");
+        return DDS_ERRNO(DDS_RETCODE_BAD_PARAMETER);
+    }
+
+    rc = dds_writer_lock(writer, &wr);
+    if (rc != DDS_RETCODE_OK) {
+        DDS_ERROR("Error occurred on locking entity\n");
+        return DDS_ERRNO(rc);
+    }
+
+    ret = dds_write_impl(wr, data, dds_time(), handle, 0);
+    dds_writer_unlock(wr);
+
+    return ret;
+}
+
+dds_return_t dds_write_ih_ts(dds_entity_t writer, const void *data, dds_instance_handle_t handle, dds_time_t timestamp)
+{
+    dds_return_t ret;
+    dds__retcode_t rc;
+    dds_writer *wr;
+
+    if (data == NULL || handle == DDS_HANDLE_NIL || timestamp < 0) {
+        return DDS_ERRNO (DDS_RETCODE_BAD_PARAMETER);
+    }
+
+    if (dds_entity_kind_from_handle(writer) != DDS_KIND_WRITER) {
+        return DDS_ERRNO(DDS_RETCODE_ILLEGAL_OPERATION);
+    }
+
+    dds_instance_handle_t inst= dds_lookup_instance (writer, data);
+    if(inst != handle) {
+        DDS_ERROR("Wrong instance handle provided \n");
+        return DDS_ERRNO(DDS_RETCODE_BAD_PARAMETER);
+    }
+
+    rc = dds_writer_lock(writer, &wr);
+    if (rc != DDS_RETCODE_OK) {
+        DDS_ERROR("Error occurred on locking entity\n");
+        return DDS_ERRNO(rc);
+    }
+
+    ret = dds_write_impl(wr, data, timestamp, handle, 0);
+    dds_writer_unlock(wr);
+
+    return ret;
 }

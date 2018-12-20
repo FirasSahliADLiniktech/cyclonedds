@@ -227,7 +227,7 @@ dds_unregister_instance_ts(
         dds_instance_remove (wr->m_topic, data, DDS_HANDLE_NIL);
         action |= DDS_WR_DISPOSE_BIT;
     }
-    ret = dds_write_impl (wr, data, timestamp, action);
+    ret = dds_write_impl (wr, data, timestamp, DDS_HANDLE_NIL, action);
     if (asleep) {
         thread_state_asleep(thr);
     }
@@ -276,7 +276,7 @@ dds_unregister_instance_ih_ts(
         void *sample = ddsi_sertopic_alloc_sample (tp);
         ddsi_serdata_topicless_to_sample (tp, tk->m_sample, sample, NULL, NULL);
         ddsi_tkmap_instance_unref (tk);
-        ret = dds_write_impl (wr, sample, timestamp, action);
+        ret = dds_write_impl ((dds_writer*)wr, sample, timestamp, DDS_HANDLE_NIL, action);
         ddsi_sertopic_free_sample (tp, sample, DDS_FREE_ALL);
     } else {
         DDS_ERROR("No instance related with the provided handle is found\n");
@@ -308,7 +308,7 @@ dds_writedispose_ts(
         if (asleep) {
             thread_state_awake(thr);
         }
-        ret = dds_write_impl (wr, data, timestamp, DDS_WR_ACTION_WRITE_DISPOSE);
+        ret = dds_write_impl (wr, data, timestamp, DDS_HANDLE_NIL, DDS_WR_ACTION_WRITE_DISPOSE);
         if (ret == DDS_RETCODE_OK) {
             dds_instance_remove (wr->m_topic, data, DDS_HANDLE_NIL);
         }
@@ -334,7 +334,7 @@ dds_dispose_impl(
     dds_return_t ret;
     assert(vtime_awake_p(lookup_thread_state()->vtime));
     assert(wr);
-    ret = dds_write_impl(wr, data, timestamp, DDS_WR_ACTION_DISPOSE);
+    ret = dds_write_impl(wr, data, timestamp, DDS_HANDLE_NIL, DDS_WR_ACTION_DISPOSE);
     if (ret == DDS_RETCODE_OK) {
         dds_instance_remove (wr->m_topic, data, handle);
     }

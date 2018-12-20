@@ -29,7 +29,7 @@ typedef enum {
   DDS_WR_ACTION_UNREGISTER = DDS_WR_KEY_BIT | DDS_WR_UNREGISTER_BIT
 } dds_write_action;
 
-dds_return_t dds_write_impl (dds_writer *wr, const void *data, dds_time_t tstamp, dds_write_action action);
+dds_return_t dds_write_impl (dds_writer *wr, const void *data, dds_time_t tstamp, dds_instance_handle_t handle, dds_write_action action);
 dds_return_t dds_writecdr_impl (dds_writer *wr, struct ddsi_serdata *d, dds_time_t tstamp, dds_write_action action);
 dds_return_t dds_writecdr_impl_lowlevel (struct writer *ddsi_wr, struct nn_xpack *xp, struct ddsi_serdata *d);
 
